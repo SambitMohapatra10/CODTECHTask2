@@ -1,0 +1,45 @@
+import pandas as pd
+import numpy as np
+from scipy.spatial.distance import cosine
+
+# Load the data
+music_data = pd.read_excel(r'E:\PROJECT\MRS\\songs.xlsx')
+
+# Create user-item matrix
+user_item_matrix = music_data.pivot_table(index='SONG NAME', columns='GENRE', values='RATINGS',)
+user_item_matrix = user_item_matrix.fillna(0)
+# Calculate cosine similarity
+item_similarity_matrix = 1 - user_item_matrix.T.corr(method='pearson')
+
+# Function to get similar songs
+def get_similar_songs(song_name, user_item_matrix=user_item_matrix, item_similarity_matrix=item_similarity_matrix, top_n=10):
+    # Get the index of the song in the user-item matrix
+    song_idx = user_item_matrix.index.get_loc(song_name)
+
+    # Map the song index from the user-item matrix to the item-similarity matrix
+    song_id = list(user_item_matrix.index).index(song_name)
+
+    # Get the pairwise similarity scores for the song
+    similarity_scores = list(enumerate(item_similarity_matrix.iloc[song_id]))
+
+    # Sort the songs based on similarity scores
+    similarity_scores = sorted(similarity_scores, key=lambda x: x[1], reverse=True)
+
+    # Get the top-n similar songs
+    similar_song_indices = [user_item_matrix.index[i[0]] for i in similarity_scores[1:top_n+1]]
+
+    # Get the song details
+    similar_songs_data = music_data[music_data['SONG NAME'].isin(similar_song_indices)][['SONG NAME','GENRE','RATINGS']]
+
+    return similar_songs_data
+
+# Example usage
+song_name = 'C'  # Replace with the song name for which you want recommendations
+
+# Check if the song name exists in the index
+if song_name in user_item_matrix.index:
+    similar_songs = get_similar_songs(song_name)
+    print(f"Similar songs to '{song_name}':")
+    print(similar_songs)
+else:
+    print(f"Error: '{song_name}' is not a valid song name in the dataset.")
